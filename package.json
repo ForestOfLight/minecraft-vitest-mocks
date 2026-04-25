@@ -1,10 +1,12 @@
 {
     "name": "@forestoflight/minecraft-vitest-mocks",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "type": "module",
     "exports": {
         "./server": "./server.js",
+        "./server-ui": "./server-ui.js",
         "./server-gametest": "./server-gametest.js",
+        "./debug-utilities": "./debug-utilities.js",
         "./setup": "./setup.js",
         ".": "./utils.js"
     },

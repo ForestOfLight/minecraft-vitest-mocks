@@ -133,6 +133,10 @@ export const EntityComponentTypes = {
     Equippable: 'minecraft:equippable',
     Projectile: 'minecraft:projectile',
 }
+export const ItemComponentTypes = {
+    Durability: 'durability',
+    Enchantable: 'enchantable',
+}
 export const Container = class Container {
     #slots
 
@@ -245,12 +249,38 @@ export const system = {
 }
 
 export const world = {
+    beforeEvents: {
+        chatSend: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerPlaceBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerBreakBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityRemove: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerLeave: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        explosion: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerInteractWithBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerInteractWithEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+    },
     afterEvents: {
-        playerJoin: { subscribe: vi.fn() },
-        entityDie: { subscribe: vi.fn() },
-        playerGameModeChange: { subscribe: vi.fn() },
-        gameRuleChange: { subscribe: vi.fn() },
-        worldLoad: { subscribe: vi.fn(cb => cb()) },
+        worldLoad: { subscribe: vi.fn(cb => cb()), unsubscribe: vi.fn() },
+        entitySpawn: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityRemove: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityDie: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityHitEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityHurt: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityLoad: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        effectAdd: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerInventoryItemChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        pistonActivate: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerBreakBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerDimensionChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerGameModeChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerInteractWithBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerInteractWithEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerJoin: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerLeave: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerPlaceBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        pressurePlatePush: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        projectileHitEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        gameRuleChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
     },
     getDynamicProperty: vi.fn((key) => worldDynamicPropertyStore.get(key)),
     setDynamicProperty: vi.fn((key, value) => worldDynamicPropertyStore.set(key, value)),
