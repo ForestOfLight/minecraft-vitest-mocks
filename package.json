@@ -1,0 +1,17 @@
+{
+    "name": "@forestoflight/minecraft-vitest-mocks",
+    "version": "1.0.3",
+    "type": "module",
+    "exports": {
+        "./server": "./server.js",
+        "./server-gametest": "./server-gametest.js",
+        "./setup": "./setup.js",
+        ".": "./utils.js"
+    },
+    "devDependencies": {
+        "vitest": "^3.1.2"
+    },
+    "peerDependencies": {
+        "vitest": "*"
+    }
+}
