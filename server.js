@@ -300,3 +300,6 @@ export const world = {
         createFromWorld: vi.fn(),
     },
 }
+
+export class LocationOutOfWorldBoundariesError extends Error {};
+export class LocationInUnloadedChunkError extends Error {};
