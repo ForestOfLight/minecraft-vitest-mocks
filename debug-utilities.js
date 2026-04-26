@@ -5,6 +5,9 @@ export const debugDrawer = {
     removeShape: vi.fn(),
 };
 
-export class DebugText {}
-export class DebugBox {}
-export class DebugShape {}
+export class DebugShape {
+    remove = vi.fn(() => debugDrawer.removeShape(this));
+}
+export class DebugText extends DebugShape {}
+export class DebugBox extends DebugShape {}
+export class DebugLine extends DebugShape {}
