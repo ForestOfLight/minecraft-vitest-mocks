@@ -2,16 +2,13 @@ import { system } from "./server";
 
 class Scheduler {
     static #instance;
-    nextRunId;
+    nextRunId = 0;
     scheduled = new Map();
-    currentTick;
+    currentTick = 0;
 
     static getInstance() {
         if (Scheduler.#instance)
             return Scheduler.#instance;
-        this.nextRunId = 1;
-        this.scheduled = new Map();
-        this.currentTick = 0;
         Scheduler.#instance = new Scheduler();
         return Scheduler.#instance;
     }
