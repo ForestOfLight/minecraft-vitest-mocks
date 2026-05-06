@@ -218,7 +218,18 @@ export const DimensionType = class DimensionType {
         if (typeId) this.typeId = typeId
     }
 }
-export const DimensionTypes = { getAll: vi.fn(() => [new DimensionType("minecraft:overworld"), new DimensionType('minecraft:nether'), new DimensionType('minecraft:the_end')]) }
+export const DimensionTypes = {
+    getAll: vi.fn(() => [new DimensionType("minecraft:overworld"), new DimensionType('minecraft:nether'), new DimensionType('minecraft:the_end')]),
+    get: vi.fn((dimensionTypeId) => {
+        if (dimensionTypeId.includes('overworld'))
+            return new DimensionType("minecraft:overworld");
+        if (dimensionTypeId.includes('nether'))
+            return new DimensionType("minecraft:nether");
+        if (dimensionTypeId.includes('the_end'))
+            return new DimensionType("minecraft:the_end");
+        return void 0;
+    })
+}
 export const TicksPerSecond = 20.0
 export const BlockVolume = class BlockVolume {}
 export const EntityItemComponent = class EntityItemComponent { get componentId() { return 'minecraft:item' } }
