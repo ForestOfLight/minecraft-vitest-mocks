@@ -7,6 +7,8 @@ export const CustomCommandStatus = { Failure: 'Failure', Success: 'Success' }
 export const CommandPermissionLevel = {}
 export const CustomCommandParamType = {}
 export const GameMode = { Adventure: 'Adventure', Creative: 'Creative', Spectator: 'Spectator', Survival: 'Survival' }
+export const StructureMirrorAxis = { X: 'X', Z: 'Z', XZ: 'XZ' }
+export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180: 'Rotate 180', Rotate270: 'Rotate270' }
 export class Entity {
     dimension = world.getDimension('overworld')
     id = 'entity'
