@@ -303,6 +303,7 @@ export const world = {
         return () => dim
     })()),
     getPlayers: vi.fn(() => []),
+    getAllPlayers: vi.fn(() => []),
     getEntity: vi.fn(),
     sendMessage: vi.fn(),
     gameRules: {},
@@ -311,6 +312,7 @@ export const world = {
         delete: vi.fn(() => true),
         place: vi.fn(),
         createFromWorld: vi.fn(),
+        getWorldStructureIds: vi.fn(() => [])
     },
 }
 
