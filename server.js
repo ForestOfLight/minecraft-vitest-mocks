@@ -9,9 +9,27 @@ export const CustomCommandParamType = {}
 export const GameMode = { Adventure: 'Adventure', Creative: 'Creative', Spectator: 'Spectator', Survival: 'Survival' }
 export const StructureMirrorAxis = { X: 'X', Z: 'Z', XZ: 'XZ' }
 export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180: 'Rotate 180', Rotate270: 'Rotate270' }
+
+export class Dimension {
+    id;
+    
+    constructor(id = "minecraft:overworld") {
+        this.id = id;
+    }
+
+    runCommand = vi.fn();
+    fillBlocks = vi.fn();
+    getPlayers = vi.fn(() => []);
+    getEntities = vi.fn(() => []);
+    spawnItem = vi.fn();
+    heightRange = { min: -64, max: 312 }
+}
+
 export class Entity {
-    dimension = world.getDimension('overworld')
-    id = 'entity'
+    #rotation = { x: 0, z: 0 };
+
+    dimension = world.getDimension('minecraft:overworld')
+    id = "1"
     isClimbing = false
     isFalling = false
     isInWater = false
@@ -54,7 +72,7 @@ export class Entity {
     getEntitiesFromViewDirection = vi.fn(() => [])
     getHeadLocation = vi.fn(() => ({ x: 0, y: 66, z: 0 }))
     getProperty = vi.fn()
-    getRotation = vi.fn(() => ({ x: 0, y: 0 }))
+    getRotation = vi.fn(() => this.#rotation)
     getTags = vi.fn(() => [])
     getVelocity = vi.fn(() => ({ x: 0, y: 0, z: 0 }))
     getViewDirection = vi.fn(() => ({ x: 0, y: 0, z: 1 }))
@@ -73,8 +91,12 @@ export class Entity {
     setDynamicProperty = vi.fn()
     setOnFire = vi.fn(() => false)
     setProperty = vi.fn()
-    setRotation = vi.fn()
-    teleport = vi.fn()
+    setRotation = vi.fn((rotation) => this.#rotation)
+    teleport = vi.fn((location, teleportOptions) => {
+        this.location = location;
+        this.dimension = teleportOptions.dimension;
+        this.setRotation(teleportOptions.rotation);
+    });
     triggerEvent = vi.fn()
     tryTeleport = vi.fn(() => true)
 }
@@ -233,9 +255,24 @@ export const DimensionTypes = {
     })
 }
 export const TicksPerSecond = 20.0
-export const BlockVolume = class BlockVolume {}
+export const BlockVolume = class BlockVolume {
+    getMin() { return { x: 0, y: 0, z: 0 } }
+    getMax() { return { x: 0, y: 0, z: 0 } }
+}
 export const EntityItemComponent = class EntityItemComponent { get componentId() { return 'minecraft:item' } }
 export const StructureSaveMode = { Memory: 'Memory', World: 'World' }
+
+export const startupEvent = {
+    blockComponentRegistry: vi.fn(),
+    itemComponentRegistry: vi.fn(),
+    customCommandRegistry: {
+        registerCommand: vi.fn(),
+        registerEnum: vi.fn()
+    },
+    dimensionRegistry: {
+        registerCustomDimension: vi.fn()
+    }
+}
 
 export const system = {
     afterEvents: {
@@ -243,7 +280,7 @@ export const system = {
     },
     beforeEvents: {
         shutdown: { subscribe: vi.fn(), unsubscribe: vi.fn() },
-        startup: { subscribe: vi.fn() },
+        startup: { subscribe: vi.fn(), unsubscribe: vi.fn() },
     },
     runJob: vi.fn(),
     run: vi.fn(callback => {
@@ -258,7 +295,7 @@ export const system = {
     clearRun: vi.fn(runId => {
         scheduler.delete(runId)
     }),
-    currentTick: 0,
+    currentTick: 0
 }
 
 export const world = {
@@ -298,10 +335,7 @@ export const world = {
     getDynamicProperty: vi.fn((key) => worldDynamicPropertyStore.get(key)),
     setDynamicProperty: vi.fn((key, value) => worldDynamicPropertyStore.set(key, value)),
     getDynamicPropertyIds: vi.fn(() => [...worldDynamicPropertyStore.getIds()]),
-    getDimension: vi.fn((() => {
-        const dim = { id: 'minecraft:overworld', runCommand: vi.fn(), fillBlocks: vi.fn(), getEntities: vi.fn(() => []), spawnItem: vi.fn() }
-        return () => dim
-    })()),
+    getDimension: vi.fn((id) => new Dimension(id)),
     getPlayers: vi.fn(() => []),
     getAllPlayers: vi.fn(() => []),
     getEntity: vi.fn(),
@@ -314,6 +348,7 @@ export const world = {
         createFromWorld: vi.fn(),
         getWorldStructureIds: vi.fn(() => [])
     },
+    getPackSettings: vi.fn({})
 }
 
 export class LocationOutOfWorldBoundariesError extends Error {};
