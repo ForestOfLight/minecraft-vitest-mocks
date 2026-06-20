@@ -348,7 +348,7 @@ export const world = {
         createFromWorld: vi.fn(),
         getWorldStructureIds: vi.fn(() => [])
     },
-    getPackSettings: vi.fn({})
+    getPackSettings: vi.fn(() => {})
 }
 
 export class LocationOutOfWorldBoundariesError extends Error {};
