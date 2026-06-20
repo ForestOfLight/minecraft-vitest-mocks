@@ -5,7 +5,19 @@ export const ScriptEventSource = { Entity: 'Entity', Block: 'Block', Server: 'Se
 export const CustomCommandSource = { Entity: 'Entity', Block: 'Block', Server: 'Server', NPCDialogue: 'NPCDialogue' }
 export const CustomCommandStatus = { Failure: 'Failure', Success: 'Success' }
 export const CommandPermissionLevel = {}
-export const CustomCommandParamType = {}
+export const CustomCommandParamType = {
+    BlockType: 'BlockType',
+    Boolean: 'Boolean',
+    EntitySelector: 'EntitySelector',
+    EntityType: 'EntityType',
+    Enum: 'Enum',
+    Float: 'Float',
+    Integer: 'Integer',
+    ItemType: 'ItemType',
+    Location: 'Location',
+    PlayerSelector: 'PlayerSelector',
+    String: 'String'
+}
 export const GameMode = { Adventure: 'Adventure', Creative: 'Creative', Spectator: 'Spectator', Survival: 'Survival' }
 export const StructureMirrorAxis = { X: 'X', Z: 'Z', XZ: 'XZ' }
 export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180: 'Rotate 180', Rotate270: 'Rotate270' }
