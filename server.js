@@ -34,6 +34,7 @@ export class Dimension {
     getPlayers = vi.fn(() => []);
     getEntities = vi.fn(() => []);
     spawnItem = vi.fn();
+    spawnParticle = vi.fn();
     heightRange = { min: -64, max: 312 }
 }
 
@@ -365,3 +366,21 @@ export const world = {
 
 export class LocationOutOfWorldBoundariesError extends Error {};
 export class LocationInUnloadedChunkError extends Error {};
+
+export class MolangVariableMap {
+    setFloat = vi.fn();
+    setColorRGBA = vi.fn();
+    setVector3 = vi.fn();
+}
+
+export class BlockPermutation {
+    constructor(id = 'minecraft:air', states = {}) {
+        this.type = { id };
+        this._states = states;
+    }
+
+    getAllStates = vi.fn(() => this._states);
+    getState = vi.fn((name) => this._states[name]);
+
+    static resolve = vi.fn((id, states = {}) => new BlockPermutation(id, states));
+}

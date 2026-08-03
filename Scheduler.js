@@ -1,4 +1,4 @@
-import { system } from "./server";
+import { system } from "./server.js";
 
 class Scheduler {
     static #instance;

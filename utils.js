@@ -1,4 +1,4 @@
-import { worldDynamicPropertyStore } from "./DynamicPropertyStore"
-import { scheduler } from "./Scheduler"
+import { worldDynamicPropertyStore } from "./DynamicPropertyStore.js"
+import { scheduler } from "./Scheduler.js"
 
 export { worldDynamicPropertyStore, scheduler }
