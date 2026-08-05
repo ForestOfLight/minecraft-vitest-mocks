@@ -134,6 +134,7 @@ export class Player extends Entity {
     selectedSlotIndex = 0
     totalXpNeededForNextLevel = 0
     xpEarnedAtCurrentLevel = 0
+    fogSettings = {}
     typeId = 'minecraft:player'
 
     addExperience = vi.fn(() => 0)
@@ -330,6 +331,7 @@ export const world = {
         entityHitEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         entityHurt: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         entityLoad: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityTamed: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         effectAdd: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerInventoryItemChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         pistonActivate: { subscribe: vi.fn(), unsubscribe: vi.fn() },
