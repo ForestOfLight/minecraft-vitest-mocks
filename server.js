@@ -24,7 +24,8 @@ export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180
 
 export class Dimension {
     id;
-    
+    #entities = [];
+
     constructor(id = "minecraft:overworld") {
         this.id = id;
     }
@@ -32,14 +33,49 @@ export class Dimension {
     runCommand = vi.fn();
     fillBlocks = vi.fn();
     getPlayers = vi.fn(() => []);
-    getEntities = vi.fn(() => []);
+    getEntities = vi.fn((options = {}) => this.#entities.filter(entity =>
+        (options.type === void 0 || entity.typeId === options.type) &&
+        (options.tags === void 0 || options.tags.every(tag => entity.getTags().includes(tag)))
+    ));
+    spawnEntity = vi.fn((typeId, location = { x: 0, y: 0, z: 0 }) => {
+        const entity = new Entity();
+        entity.typeId = typeId;
+        entity.location = location;
+        entity.dimension = this;
+        entity.remove.mockImplementation(() => this.removeEntity(entity));
+        this.#entities.push(entity);
+        return entity;
+    });
+    addEntity = vi.fn(entity => {
+        if (!this.#entities.includes(entity))
+            this.#entities.push(entity);
+    });
+    removeEntity = vi.fn(entity => {
+        const index = this.#entities.indexOf(entity);
+        if (index !== -1)
+            this.#entities.splice(index, 1);
+    });
     spawnItem = vi.fn();
     spawnParticle = vi.fn();
     heightRange = { min: -64, max: 312 }
 }
 
+const dimensions = new Map()
+const structures = new Map()
+
+function normalizeDimensionId(id) {
+    return id.startsWith('minecraft:') ? id : `minecraft:${id}`
+}
+
+export function resetWorldState() {
+    dimensions.clear()
+    structures.clear()
+}
+
 export class Entity {
     #rotation = { x: 0, z: 0 };
+    #tags = [];
+    #container;
 
     dimension = world.getDimension('minecraft:overworld')
     id = "1"
@@ -64,7 +100,11 @@ export class Entity {
 
     addEffect = vi.fn()
     addItem = vi.fn()
-    addTag = vi.fn(() => true)
+    addTag = vi.fn(tag => {
+        if (this.#tags.includes(tag)) return false
+        this.#tags.push(tag)
+        return true
+    })
     applyDamage = vi.fn(() => false)
     applyImpulse = vi.fn()
     applyKnockback = vi.fn()
@@ -75,7 +115,11 @@ export class Entity {
     getAllBlocksStandingOn = vi.fn(() => [])
     getBlockFromViewDirection = vi.fn(() => void 0)
     getBlockStandingOn = vi.fn(() => void 0)
-    getComponent = vi.fn(() => void 0)
+    getComponent = vi.fn(type => {
+        if (type !== EntityComponentTypes.Inventory) return void 0
+        this.#container ??= new Container({ size: 256 })
+        return { container: this.#container }
+    })
     getComponents = vi.fn(() => [])
     getDynamicProperty = vi.fn()
     getDynamicPropertyIds = vi.fn(() => [])
@@ -86,18 +130,23 @@ export class Entity {
     getHeadLocation = vi.fn(() => ({ x: 0, y: 66, z: 0 }))
     getProperty = vi.fn()
     getRotation = vi.fn(() => this.#rotation)
-    getTags = vi.fn(() => [])
+    getTags = vi.fn(() => [...this.#tags])
     getVelocity = vi.fn(() => ({ x: 0, y: 0, z: 0 }))
     getViewDirection = vi.fn(() => ({ x: 0, y: 0, z: 1 }))
     hasComponent = vi.fn(() => false)
-    hasTag = vi.fn(() => false)
+    hasTag = vi.fn(tag => this.#tags.includes(tag))
     kill = vi.fn(() => true)
     lookAt = vi.fn()
     matches = vi.fn(() => false)
     playAnimation = vi.fn()
     remove = vi.fn()
     removeEffect = vi.fn(() => false)
-    removeTag = vi.fn(() => false)
+    removeTag = vi.fn(tag => {
+        const index = this.#tags.indexOf(tag)
+        if (index === -1) return false
+        this.#tags.splice(index, 1)
+        return true
+    })
     resetProperty = vi.fn()
     runCommand = vi.fn()
     setDynamicProperties = vi.fn()
@@ -350,22 +399,41 @@ export const world = {
     getDynamicProperty: vi.fn((key) => worldDynamicPropertyStore.get(key)),
     setDynamicProperty: vi.fn((key, value) => worldDynamicPropertyStore.set(key, value)),
     getDynamicPropertyIds: vi.fn(() => [...worldDynamicPropertyStore.getIds()]),
-    getDimension: vi.fn((id) => new Dimension(id)),
+    getDimension: vi.fn((id = 'minecraft:overworld') => {
+        const dimensionId = normalizeDimensionId(id)
+        if (!dimensions.has(dimensionId))
+            dimensions.set(dimensionId, new Dimension(dimensionId))
+        return dimensions.get(dimensionId)
+    }),
     getPlayers: vi.fn(() => []),
     getAllPlayers: vi.fn(() => []),
     getEntity: vi.fn(),
     sendMessage: vi.fn(),
     gameRules: {},
     structureManager: {
-        get: vi.fn(),
-        delete: vi.fn(() => true),
-        place: vi.fn(),
-        createFromWorld: vi.fn(),
-        getWorldStructureIds: vi.fn(() => [])
+        get: vi.fn(id => structures.has(id) ? { id } : void 0),
+        delete: vi.fn(id => structures.delete(id)),
+        place: vi.fn((id, dimension) => {
+            if (!structures.has(id))
+                throw new InvalidStructureError(`Structure ${id} does not exist.`)
+            for (const entity of structures.get(id))
+                dimension.addEntity(entity)
+        }),
+        createFromWorld: vi.fn((id, dimension) => {
+            structures.set(id, dimension.getEntities())
+            return { id }
+        }),
+        getWorldStructureIds: vi.fn(() => [...structures.keys()])
+    },
+    tickingAreaManager: {
+        createTickingArea: vi.fn(() => Promise.resolve()),
+        removeTickingArea: vi.fn(() => true),
+        hasTickingArea: vi.fn(() => false)
     },
     getPackSettings: vi.fn(() => {})
 }
 
+export class InvalidStructureError extends Error {};
 export class LocationOutOfWorldBoundariesError extends Error {};
 export class LocationInUnloadedChunkError extends Error {};
 
