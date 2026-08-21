@@ -19,6 +19,8 @@ export const CustomCommandParamType = {
     String: 'String'
 }
 export const GameMode = { Adventure: 'Adventure', Creative: 'Creative', Spectator: 'Spectator', Survival: 'Survival' }
+export const InputButton = { Jump: 'Jump', Sneak: 'Sneak' }
+export const ButtonState = { Pressed: 'Pressed', Released: 'Released' }
 export const StructureMirrorAxis = { X: 'X', Z: 'Z', XZ: 'XZ' }
 export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180: 'Rotate 180', Rotate270: 'Rotate270' }
 
@@ -35,7 +37,9 @@ export class Dimension {
     getPlayers = vi.fn(() => []);
     getEntities = vi.fn((options = {}) => this.#entities.filter(entity =>
         (options.type === void 0 || entity.typeId === options.type) &&
-        (options.tags === void 0 || options.tags.every(tag => entity.getTags().includes(tag)))
+        (options.tags === void 0 || options.tags.every(tag => entity.getTags().includes(tag))) &&
+        (options.families === void 0 || options.families.every(family => (entity.typeFamilies ?? []).includes(family))) &&
+        (options.excludeFamilies === void 0 || !options.excludeFamilies.some(family => (entity.typeFamilies ?? []).includes(family)))
     ));
     spawnEntity = vi.fn((typeId, location = { x: 0, y: 0, z: 0 }) => {
         const entity = new Entity();
@@ -76,6 +80,8 @@ export class Entity {
     #rotation = { x: 0, z: 0 };
     #tags = [];
     #container;
+    #equipment = new Map();
+    #equippable;
 
     dimension = world.getDimension('minecraft:overworld')
     id = "1"
@@ -96,6 +102,7 @@ export class Entity {
     nameTag = ''
     scoreboardIdentity = void 0
     target = void 0
+    typeFamilies = []
     typeId = 'minecraft:entity'
 
     addEffect = vi.fn()
@@ -116,9 +123,35 @@ export class Entity {
     getBlockFromViewDirection = vi.fn(() => void 0)
     getBlockStandingOn = vi.fn(() => void 0)
     getComponent = vi.fn(type => {
-        if (type !== EntityComponentTypes.Inventory) return void 0
-        this.#container ??= new Container({ size: 256 })
-        return { container: this.#container }
+        if (type === EntityComponentTypes.Inventory) {
+            this.#container ??= new Container({ size: 256 })
+            return { container: this.#container }
+        }
+        if (type === EntityComponentTypes.Equippable) {
+            this.#equippable ??= {
+                getEquipment: vi.fn(equipmentSlot => this.#equipment.get(equipmentSlot)),
+                setEquipment: vi.fn((equipmentSlot, itemStack) => {
+                    if (itemStack === void 0) this.#equipment.delete(equipmentSlot)
+                    else this.#equipment.set(equipmentSlot, itemStack)
+                    return true
+                }),
+                getEquipmentSlot: vi.fn(equipmentSlot => ({
+                    getItem: () => this.#equipment.get(equipmentSlot),
+                    setItem: itemStack => {
+                        if (itemStack === void 0) this.#equipment.delete(equipmentSlot)
+                        else this.#equipment.set(equipmentSlot, itemStack)
+                    }
+                }))
+            }
+            return this.#equippable
+        }
+        if (type === EntityComponentTypes.TypeFamily) {
+            return {
+                getTypeFamilies: vi.fn(() => [...this.typeFamilies]),
+                hasTypeFamily: vi.fn(family => this.typeFamilies.includes(family))
+            }
+        }
+        return void 0
     })
     getComponents = vi.fn(() => [])
     getDynamicProperty = vi.fn()
@@ -154,10 +187,12 @@ export class Entity {
     setOnFire = vi.fn(() => false)
     setProperty = vi.fn()
     setRotation = vi.fn((rotation) => this.#rotation)
-    teleport = vi.fn((location, teleportOptions) => {
+    teleport = vi.fn((location, teleportOptions = {}) => {
         this.location = location;
-        this.dimension = teleportOptions.dimension;
-        this.setRotation(teleportOptions.rotation);
+        if (teleportOptions.dimension !== void 0)
+            this.dimension = teleportOptions.dimension;
+        if (teleportOptions.rotation !== void 0)
+            this.setRotation(teleportOptions.rotation);
     });
     triggerEvent = vi.fn()
     tryTeleport = vi.fn(() => true)
@@ -168,7 +203,7 @@ export class Player extends Entity {
     clientSystemInfo = {}
     commandPermissionLevel = void 0
     graphicsMode = {}
-    inputInfo = {}
+    inputInfo = { getButtonState: vi.fn(() => ButtonState.Released) }
     inputPermissions = {}
     isEmoting = false
     isFlying = false
@@ -177,7 +212,17 @@ export class Player extends Entity {
     level = 0
     locatorBar = {}
     name = ''
-    onScreenDisplay = {}
+    onScreenDisplay = {
+        isValid: true,
+        getHiddenHudElements: vi.fn(() => []),
+        hideAllExcept: vi.fn(),
+        isForcedHidden: vi.fn(() => false),
+        resetHudElementsVisibility: vi.fn(),
+        setActionBar: vi.fn(),
+        setHudVisibility: vi.fn(),
+        setTitle: vi.fn(),
+        updateSubtitle: vi.fn()
+    }
     partyId = void 0
     playerPermissionLevel = void 0
     selectedSlotIndex = 0
@@ -216,14 +261,89 @@ export class Player extends Entity {
 
 export const Block = class Block {}
 export const EntityComponentTypes = {
-    Inventory: 'minecraft:inventory',
+    AddRider: 'minecraft:addrider',
+    Ageable: 'minecraft:ageable',
+    Breathable: 'minecraft:breathable',
+    CanClimb: 'minecraft:can_climb',
+    CanFly: 'minecraft:can_fly',
+    CanPowerJump: 'minecraft:can_power_jump',
+    Color: 'minecraft:color',
+    Color2: 'minecraft:color2',
+    CursorInventory: 'minecraft:cursor_inventory',
+    EnderInventory: 'minecraft:ender_inventory',
     Equippable: 'minecraft:equippable',
+    FireImmune: 'minecraft:fire_immune',
+    FloatsInLiquid: 'minecraft:floats_in_liquid',
+    FlyingSpeed: 'minecraft:flying_speed',
+    FrictionModifier: 'minecraft:friction_modifier',
+    Healable: 'minecraft:healable',
+    Health: 'minecraft:health',
+    Inventory: 'minecraft:inventory',
+    IsBaby: 'minecraft:is_baby',
+    IsCharged: 'minecraft:is_charged',
+    IsChested: 'minecraft:is_chested',
+    IsDyeable: 'minecraft:is_dyeable',
+    IsHiddenWhenInvisible: 'minecraft:is_hidden_when_invisible',
+    IsIgnited: 'minecraft:is_ignited',
+    IsIllagerCaptain: 'minecraft:is_illager_captain',
+    IsSaddled: 'minecraft:is_saddled',
+    IsShaking: 'minecraft:is_shaking',
+    IsSheared: 'minecraft:is_sheared',
+    IsStackable: 'minecraft:is_stackable',
+    IsStunned: 'minecraft:is_stunned',
+    IsTamed: 'minecraft:is_tamed',
+    Item: 'minecraft:item',
+    LavaMovement: 'minecraft:lava_movement',
+    Leashable: 'minecraft:leashable',
+    MarkVariant: 'minecraft:mark_variant',
+    Movement: 'minecraft:movement',
+    MovementAmphibious: 'minecraft:movement.amphibious',
+    MovementBasic: 'minecraft:movement.basic',
+    MovementFly: 'minecraft:movement.fly',
+    MovementGeneric: 'minecraft:movement.generic',
+    MovementGlide: 'minecraft:movement.glide',
+    MovementHover: 'minecraft:movement.hover',
+    MovementJump: 'minecraft:movement.jump',
+    MovementSkip: 'minecraft:movement.skip',
+    MovementSway: 'minecraft:movement.sway',
+    NavigationClimb: 'minecraft:navigation.climb',
+    NavigationFloat: 'minecraft:navigation.float',
+    NavigationFly: 'minecraft:navigation.fly',
+    NavigationGeneric: 'minecraft:navigation.generic',
+    NavigationHover: 'minecraft:navigation.hover',
+    NavigationWalk: 'minecraft:navigation.walk',
+    Npc: 'minecraft:npc',
+    OnFire: 'minecraft:onfire',
+    Exhaustion: 'minecraft:player.exhaustion',
+    Hunger: 'minecraft:player.hunger',
+    Saturation: 'minecraft:player.saturation',
     Projectile: 'minecraft:projectile',
+    PushThrough: 'minecraft:push_through',
+    Rideable: 'minecraft:rideable',
+    Riding: 'minecraft:riding',
+    Scale: 'minecraft:scale',
+    SkinId: 'minecraft:skin_id',
+    Strength: 'minecraft:strength',
+    Tameable: 'minecraft:tameable',
+    TameMount: 'minecraft:tamemount',
+    TypeFamily: 'minecraft:type_family',
+    UnderwaterMovement: 'minecraft:underwater_movement',
+    Variant: 'minecraft:variant',
+    WantsJockey: 'minecraft:wants_jockey',
 }
 export const ItemComponentTypes = {
-    Durability: 'durability',
-    Enchantable: 'enchantable',
+    BlockDynamicProperties: 'minecraft:block_actor_dynamic_properties',
+    Book: 'minecraft:book',
+    Compostable: 'minecraft:compostable',
+    Cooldown: 'minecraft:cooldown',
+    Durability: 'minecraft:durability',
+    Dyeable: 'minecraft:dyeable',
+    Enchantable: 'minecraft:enchantable',
+    Food: 'minecraft:food',
+    Inventory: 'minecraft:inventory',
+    Potion: 'minecraft:potion',
 }
+export const ItemLockMode = { inventory: 'inventory', none: 'none', slot: 'slot' }
 export const Container = class Container {
     #slots
 
@@ -296,6 +416,61 @@ export const Container = class Container {
         }
         return void 0
     })
+}
+export class ItemStack {
+    #dynamicProperties = new Map()
+    #lore = []
+    #tags = []
+
+    constructor(itemType, amount = 1) {
+        this.typeId = typeof itemType === 'string' ? itemType : itemType?.id
+        this.amount = amount
+        this.nameTag = void 0
+        this.keepOnDeath = false
+        this.lockMode = ItemLockMode.none
+        this.maxAmount = 64
+        this.weight = 0
+    }
+
+    get isStackable() { return this.maxAmount > 1 }
+    get localizationKey() { return `item.${this.typeId?.replace('minecraft:', '')}.name` }
+
+    clone = vi.fn(() => {
+        const clone = new ItemStack(this.typeId, this.amount)
+        clone.nameTag = this.nameTag
+        clone.keepOnDeath = this.keepOnDeath
+        clone.lockMode = this.lockMode
+        clone.maxAmount = this.maxAmount
+        clone.setLore([...this.#lore])
+        return clone
+    })
+    clearDynamicProperties = vi.fn(() => this.#dynamicProperties.clear())
+    getCanDestroy = vi.fn(() => [])
+    getCanPlaceOn = vi.fn(() => [])
+    getComponent = vi.fn(() => void 0)
+    getComponents = vi.fn(() => [])
+    getDynamicProperty = vi.fn(identifier => this.#dynamicProperties.get(identifier))
+    getDynamicPropertyIds = vi.fn(() => [...this.#dynamicProperties.keys()])
+    getDynamicPropertyTotalByteCount = vi.fn(() => 0)
+    getLore = vi.fn(() => [...this.#lore])
+    getRawLore = vi.fn(() => [])
+    getTags = vi.fn(() => [...this.#tags])
+    hasComponent = vi.fn(() => false)
+    hasTag = vi.fn(tag => this.#tags.includes(tag))
+    isStackableWith = vi.fn(itemStack => this.isStackable
+        && itemStack?.typeId === this.typeId
+        && itemStack?.nameTag === this.nameTag)
+    matches = vi.fn(itemName => itemName === this.typeId)
+    setCanDestroy = vi.fn()
+    setCanPlaceOn = vi.fn()
+    setDynamicProperties = vi.fn(values => {
+        Object.entries(values ?? {}).forEach(([identifier, value]) => this.setDynamicProperty(identifier, value))
+    })
+    setDynamicProperty = vi.fn((identifier, value) => {
+        if (value === void 0) this.#dynamicProperties.delete(identifier)
+        else this.#dynamicProperties.set(identifier, value)
+    })
+    setLore = vi.fn((loreList = []) => { this.#lore = [...loreList] })
 }
 export const EquipmentSlot = { Body: 'Body', Chest: 'Chest', Feet: 'Feet', Head: 'Head', Legs: 'Legs', Mainhand: 'Mainhand', Offhand: 'Offhand' }
 export const DimensionType = class DimensionType {
@@ -376,6 +551,8 @@ export const world = {
         worldLoad: { subscribe: vi.fn(cb => cb()), unsubscribe: vi.fn() },
         entitySpawn: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         entityRemove: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityContainerOpened: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityContainerClosed: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         entityDie: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         entityHitEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         entityHurt: { subscribe: vi.fn(), unsubscribe: vi.fn() },
