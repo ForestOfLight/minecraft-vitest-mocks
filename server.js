@@ -61,7 +61,8 @@ export class Dimension {
     });
     spawnItem = vi.fn();
     spawnParticle = vi.fn();
-    heightRange = { min: -64, max: 312 }
+    heightRange = { min: -64, max: 312 };
+    isChunkLoaded = () => true
 }
 
 const dimensions = new Map()
