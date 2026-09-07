@@ -563,6 +563,7 @@ export const world = {
         playerInventoryItemChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         pistonActivate: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerBreakBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        playerStartBreakingBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerDimensionChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerGameModeChange: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerInteractWithBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
