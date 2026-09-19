@@ -261,6 +261,7 @@ export class Player extends Entity {
 }
 
 export const Block = class Block {}
+export const BlockComponentTypes = { Inventory: 'minecraft:inventory' }
 export const EntityComponentTypes = {
     AddRider: 'minecraft:addrider',
     Ageable: 'minecraft:ageable',
