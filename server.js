@@ -547,6 +547,7 @@ export const world = {
         explosion: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerInteractWithBlock: { subscribe: vi.fn(), unsubscribe: vi.fn() },
         playerInteractWithEntity: { subscribe: vi.fn(), unsubscribe: vi.fn() },
+        entityHurt: { subscribe: vi.fn(), unsubscribe: vi.fn() },
     },
     afterEvents: {
         worldLoad: { subscribe: vi.fn(cb => cb()), unsubscribe: vi.fn() },
