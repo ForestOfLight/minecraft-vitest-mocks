@@ -4,7 +4,7 @@ import { worldDynamicPropertyStore, scheduler } from './utils.js'
 export const ScriptEventSource = { Entity: 'Entity', Block: 'Block', Server: 'Server', NPCDialogue: 'NPCDialogue' }
 export const CustomCommandSource = { Entity: 'Entity', Block: 'Block', Server: 'Server', NPCDialogue: 'NPCDialogue' }
 export const CustomCommandStatus = { Failure: 'Failure', Success: 'Success' }
-export const CommandPermissionLevel = {}
+export const CommandPermissionLevel = { Any: 0, GameDirectors: 1, Admin: 2, Host: 3, Owner: 4 }
 export const CustomCommandParamType = {
     BlockType: 'BlockType',
     Boolean: 'Boolean',
@@ -23,6 +23,94 @@ export const InputButton = { Jump: 'Jump', Sneak: 'Sneak' }
 export const ButtonState = { Pressed: 'Pressed', Released: 'Released' }
 export const StructureMirrorAxis = { X: 'X', Z: 'Z', XZ: 'XZ' }
 export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180: 'Rotate 180', Rotate270: 'Rotate270' }
+export const InputMode = { Gamepad: 'Gamepad', KeyboardAndMouse: 'KeyboardAndMouse', MotionController: 'MotionController', Touch: 'Touch' }
+export const ItemLockMode = { inventory: 'inventory', none: 'none', slot: 'slot' }
+export const EntityComponentTypes = {
+    AddRider: 'minecraft:addrider',
+    Ageable: 'minecraft:ageable',
+    Breathable: 'minecraft:breathable',
+    CanClimb: 'minecraft:can_climb',
+    CanFly: 'minecraft:can_fly',
+    CanPowerJump: 'minecraft:can_power_jump',
+    Color: 'minecraft:color',
+    Color2: 'minecraft:color2',
+    CursorInventory: 'minecraft:cursor_inventory',
+    EnderInventory: 'minecraft:ender_inventory',
+    Equippable: 'minecraft:equippable',
+    FireImmune: 'minecraft:fire_immune',
+    FloatsInLiquid: 'minecraft:floats_in_liquid',
+    FlyingSpeed: 'minecraft:flying_speed',
+    FrictionModifier: 'minecraft:friction_modifier',
+    Healable: 'minecraft:healable',
+    Health: 'minecraft:health',
+    Inventory: 'minecraft:inventory',
+    IsBaby: 'minecraft:is_baby',
+    IsCharged: 'minecraft:is_charged',
+    IsChested: 'minecraft:is_chested',
+    IsDyeable: 'minecraft:is_dyeable',
+    IsHiddenWhenInvisible: 'minecraft:is_hidden_when_invisible',
+    IsIgnited: 'minecraft:is_ignited',
+    IsIllagerCaptain: 'minecraft:is_illager_captain',
+    IsSaddled: 'minecraft:is_saddled',
+    IsShaking: 'minecraft:is_shaking',
+    IsSheared: 'minecraft:is_sheared',
+    IsStackable: 'minecraft:is_stackable',
+    IsStunned: 'minecraft:is_stunned',
+    IsTamed: 'minecraft:is_tamed',
+    Item: 'minecraft:item',
+    LavaMovement: 'minecraft:lava_movement',
+    Leashable: 'minecraft:leashable',
+    MarkVariant: 'minecraft:mark_variant',
+    Movement: 'minecraft:movement',
+    MovementAmphibious: 'minecraft:movement.amphibious',
+    MovementBasic: 'minecraft:movement.basic',
+    MovementFly: 'minecraft:movement.fly',
+    MovementGeneric: 'minecraft:movement.generic',
+    MovementGlide: 'minecraft:movement.glide',
+    MovementHover: 'minecraft:movement.hover',
+    MovementJump: 'minecraft:movement.jump',
+    MovementSkip: 'minecraft:movement.skip',
+    MovementSway: 'minecraft:movement.sway',
+    NavigationClimb: 'minecraft:navigation.climb',
+    NavigationFloat: 'minecraft:navigation.float',
+    NavigationFly: 'minecraft:navigation.fly',
+    NavigationGeneric: 'minecraft:navigation.generic',
+    NavigationHover: 'minecraft:navigation.hover',
+    NavigationWalk: 'minecraft:navigation.walk',
+    Npc: 'minecraft:npc',
+    OnFire: 'minecraft:onfire',
+    Exhaustion: 'minecraft:player.exhaustion',
+    Hunger: 'minecraft:player.hunger',
+    Saturation: 'minecraft:player.saturation',
+    Projectile: 'minecraft:projectile',
+    PushThrough: 'minecraft:push_through',
+    Rideable: 'minecraft:rideable',
+    Riding: 'minecraft:riding',
+    Scale: 'minecraft:scale',
+    SkinId: 'minecraft:skin_id',
+    Strength: 'minecraft:strength',
+    Tameable: 'minecraft:tameable',
+    TameMount: 'minecraft:tamemount',
+    TypeFamily: 'minecraft:type_family',
+    UnderwaterMovement: 'minecraft:underwater_movement',
+    Variant: 'minecraft:variant',
+    WantsJockey: 'minecraft:wants_jockey',
+}
+export const ItemComponentTypes = {
+    BlockDynamicProperties: 'minecraft:block_actor_dynamic_properties',
+    Book: 'minecraft:book',
+    Compostable: 'minecraft:compostable',
+    Cooldown: 'minecraft:cooldown',
+    Durability: 'minecraft:durability',
+    Dyeable: 'minecraft:dyeable',
+    Enchantable: 'minecraft:enchantable',
+    Food: 'minecraft:food',
+    Inventory: 'minecraft:inventory',
+    Potion: 'minecraft:potion',
+}
+export const BlockComponentTypes = {
+    Inventory: 'minecraft:inventory'
+}
 
 export class Dimension {
     id;
@@ -204,7 +292,12 @@ export class Player extends Entity {
     clientSystemInfo = {}
     commandPermissionLevel = void 0
     graphicsMode = {}
-    inputInfo = { getButtonState: vi.fn(() => ButtonState.Released) }
+    inputInfo = {
+        lastInputModeUsed: InputMode.KeyboardAndMouse,
+        touchOnlyAffectsHotbar: false,
+        getButtonState: vi.fn((inputButton) => ButtonState.Released),
+        getMovementVector: vi.fn(() => ({ x: 0.0, y: 0.0 }))
+    }
     inputPermissions = {}
     isEmoting = false
     isFlying = false
@@ -261,90 +354,7 @@ export class Player extends Entity {
 }
 
 export const Block = class Block {}
-export const EntityComponentTypes = {
-    AddRider: 'minecraft:addrider',
-    Ageable: 'minecraft:ageable',
-    Breathable: 'minecraft:breathable',
-    CanClimb: 'minecraft:can_climb',
-    CanFly: 'minecraft:can_fly',
-    CanPowerJump: 'minecraft:can_power_jump',
-    Color: 'minecraft:color',
-    Color2: 'minecraft:color2',
-    CursorInventory: 'minecraft:cursor_inventory',
-    EnderInventory: 'minecraft:ender_inventory',
-    Equippable: 'minecraft:equippable',
-    FireImmune: 'minecraft:fire_immune',
-    FloatsInLiquid: 'minecraft:floats_in_liquid',
-    FlyingSpeed: 'minecraft:flying_speed',
-    FrictionModifier: 'minecraft:friction_modifier',
-    Healable: 'minecraft:healable',
-    Health: 'minecraft:health',
-    Inventory: 'minecraft:inventory',
-    IsBaby: 'minecraft:is_baby',
-    IsCharged: 'minecraft:is_charged',
-    IsChested: 'minecraft:is_chested',
-    IsDyeable: 'minecraft:is_dyeable',
-    IsHiddenWhenInvisible: 'minecraft:is_hidden_when_invisible',
-    IsIgnited: 'minecraft:is_ignited',
-    IsIllagerCaptain: 'minecraft:is_illager_captain',
-    IsSaddled: 'minecraft:is_saddled',
-    IsShaking: 'minecraft:is_shaking',
-    IsSheared: 'minecraft:is_sheared',
-    IsStackable: 'minecraft:is_stackable',
-    IsStunned: 'minecraft:is_stunned',
-    IsTamed: 'minecraft:is_tamed',
-    Item: 'minecraft:item',
-    LavaMovement: 'minecraft:lava_movement',
-    Leashable: 'minecraft:leashable',
-    MarkVariant: 'minecraft:mark_variant',
-    Movement: 'minecraft:movement',
-    MovementAmphibious: 'minecraft:movement.amphibious',
-    MovementBasic: 'minecraft:movement.basic',
-    MovementFly: 'minecraft:movement.fly',
-    MovementGeneric: 'minecraft:movement.generic',
-    MovementGlide: 'minecraft:movement.glide',
-    MovementHover: 'minecraft:movement.hover',
-    MovementJump: 'minecraft:movement.jump',
-    MovementSkip: 'minecraft:movement.skip',
-    MovementSway: 'minecraft:movement.sway',
-    NavigationClimb: 'minecraft:navigation.climb',
-    NavigationFloat: 'minecraft:navigation.float',
-    NavigationFly: 'minecraft:navigation.fly',
-    NavigationGeneric: 'minecraft:navigation.generic',
-    NavigationHover: 'minecraft:navigation.hover',
-    NavigationWalk: 'minecraft:navigation.walk',
-    Npc: 'minecraft:npc',
-    OnFire: 'minecraft:onfire',
-    Exhaustion: 'minecraft:player.exhaustion',
-    Hunger: 'minecraft:player.hunger',
-    Saturation: 'minecraft:player.saturation',
-    Projectile: 'minecraft:projectile',
-    PushThrough: 'minecraft:push_through',
-    Rideable: 'minecraft:rideable',
-    Riding: 'minecraft:riding',
-    Scale: 'minecraft:scale',
-    SkinId: 'minecraft:skin_id',
-    Strength: 'minecraft:strength',
-    Tameable: 'minecraft:tameable',
-    TameMount: 'minecraft:tamemount',
-    TypeFamily: 'minecraft:type_family',
-    UnderwaterMovement: 'minecraft:underwater_movement',
-    Variant: 'minecraft:variant',
-    WantsJockey: 'minecraft:wants_jockey',
-}
-export const ItemComponentTypes = {
-    BlockDynamicProperties: 'minecraft:block_actor_dynamic_properties',
-    Book: 'minecraft:book',
-    Compostable: 'minecraft:compostable',
-    Cooldown: 'minecraft:cooldown',
-    Durability: 'minecraft:durability',
-    Dyeable: 'minecraft:dyeable',
-    Enchantable: 'minecraft:enchantable',
-    Food: 'minecraft:food',
-    Inventory: 'minecraft:inventory',
-    Potion: 'minecraft:potion',
-}
-export const ItemLockMode = { inventory: 'inventory', none: 'none', slot: 'slot' }
+
 export const Container = class Container {
     #slots
 
