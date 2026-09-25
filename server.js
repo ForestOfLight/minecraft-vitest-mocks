@@ -25,6 +25,7 @@ export const StructureMirrorAxis = { X: 'X', Z: 'Z', XZ: 'XZ' }
 export const StructureRotation = { None: 'None', Rotate90: 'Rotate90', Rotate180: 'Rotate 180', Rotate270: 'Rotate270' }
 export const InputMode = { Gamepad: 'Gamepad', KeyboardAndMouse: 'KeyboardAndMouse', MotionController: 'MotionController', Touch: 'Touch' }
 export const ItemLockMode = { inventory: 'inventory', none: 'none', slot: 'slot' }
+export const FluidType = { Lava: 'Lava', Potion: 'Potion', PowderSnow: 'PowderSnow', Water: 'Water' }
 export const EntityComponentTypes = {
     AddRider: 'minecraft:addrider',
     Ageable: 'minecraft:ageable',
@@ -109,7 +110,8 @@ export const ItemComponentTypes = {
     Potion: 'minecraft:potion',
 }
 export const BlockComponentTypes = {
-    Inventory: 'minecraft:inventory'
+    Inventory: 'minecraft:inventory',
+    FluidContainer: 'minecraft:fluid_container'
 }
 
 export class Dimension {
@@ -121,6 +123,7 @@ export class Dimension {
     }
 
     runCommand = vi.fn();
+    getBlock = vi.fn();
     fillBlocks = vi.fn();
     getPlayers = vi.fn(() => []);
     getEntities = vi.fn((options = {}) => this.#entities.filter(entity =>
@@ -134,8 +137,8 @@ export class Dimension {
         entity.typeId = typeId;
         entity.location = location;
         entity.dimension = this;
-        entity.remove.mockImplementation(() => this.removeEntity(entity));
-        this.#entities.push(entity);
+        entity.remove = this.removeEntity(entity);
+        this.addEntity(entity);
         return entity;
     });
     addEntity = vi.fn(entity => {
@@ -147,8 +150,17 @@ export class Dimension {
         if (index !== -1)
             this.#entities.splice(index, 1);
     });
-    spawnItem = vi.fn();
+    spawnItem = vi.fn((itemStack, location) => {
+        const entity = this.spawnEntity('minecraft:item', location);
+        entity.getComponent.mockImplementation((componentId) => {
+            if (componentId === 'minecraft:item')
+                return { itemStack: itemStack };
+            return entity.getComponent(componentId);
+        });
+        return entity;
+    });
     spawnParticle = vi.fn();
+    playSound = vi.fn();
     heightRange = { min: -64, max: 312 };
     isChunkLoaded = () => true
 }
@@ -184,20 +196,25 @@ export class Entity {
     isSwimming = false
     isValid = true
     localizationKey = ''
-    location = { x: 0, y: 64, z: 0 }
     x = 0
     y = 64
     z = 0
+    location = { x: this.x, y: this.y, z: this.z }
     nameTag = ''
     scoreboardIdentity = void 0
     target = void 0
     typeFamilies = []
-    typeId = 'minecraft:entity'
+    typeId;
+
+    constructor(typeId = 'minecraft:entity') {
+        this.typeId = typeId;
+    }
 
     addEffect = vi.fn()
     addItem = vi.fn()
     addTag = vi.fn(tag => {
-        if (this.#tags.includes(tag)) return false
+        if (this.#tags.includes(tag))
+            return false
         this.#tags.push(tag)
         return true
     })
@@ -353,7 +370,26 @@ export class Player extends Entity {
     stopSound = vi.fn()
 }
 
-export const Block = class Block {}
+export const Block = class Block {
+    x = 0
+    y = 64
+    z = 0
+    location = { x: this.x, y: this.y, z: this.z }
+    typeId
+
+    constructor(typeId = 'minecraft:air') {
+        this.typeId = typeId;
+    }
+    
+    getComponent = vi.fn((componentId) => {
+        switch(componentId) {
+            case BlockComponentTypes.FluidContainer:
+                return new BlockFluidContainerComponent();
+            default:
+                return void 0;
+        }
+    })
+}
 
 export const Container = class Container {
     #slots
@@ -521,6 +557,18 @@ export const startupEvent = {
     dimensionRegistry: {
         registerCustomDimension: vi.fn()
     }
+}
+
+class BlockFluidContainerComponent {
+    #fluidType = FluidType.Water
+    fillLevel = 0
+    fluidColor = { red: 0, green: 0, blue: 0, alpha: 0 }
+    componentId = BlockComponentTypes.FluidContainer
+
+    addDye = vi.fn()
+    getFluidType = vi.fn(() => this.#fluidType)
+    setFluidType = vi.fn((fluidType) => this.#fluidType = fluidType)
+    setPotion = vi.fn()
 }
 
 export const system = {
