@@ -137,7 +137,7 @@ export class Dimension {
         entity.typeId = typeId;
         entity.location = location;
         entity.dimension = this;
-        entity.remove = this.removeEntity(entity);
+        entity.remove = vi.fn(() => this.removeEntity(entity));
         this.addEntity(entity);
         return entity;
     });
