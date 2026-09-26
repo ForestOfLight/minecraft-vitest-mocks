@@ -1,6 +1,6 @@
 {
     "name": "@forestoflight/minecraft-vitest-mocks",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "type": "module",
     "exports": {
         "./server": "./server.js",
