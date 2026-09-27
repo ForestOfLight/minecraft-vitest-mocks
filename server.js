@@ -167,6 +167,7 @@ export class Dimension {
 
 const dimensions = new Map()
 const structures = new Map()
+const primitiveShapes = []
 
 function normalizeDimensionId(id) {
     return id.startsWith('minecraft:') ? id : `minecraft:${id}`
@@ -175,6 +176,13 @@ function normalizeDimensionId(id) {
 export function resetWorldState() {
     dimensions.clear()
     structures.clear()
+    primitiveShapes.length = 0
+}
+
+function removePrimitiveShape(shape) {
+    const index = primitiveShapes.indexOf(shape)
+    if (index !== -1)
+        primitiveShapes.splice(index, 1)
 }
 
 export class Entity {
@@ -340,6 +348,7 @@ export class Player extends Entity {
     totalXpNeededForNextLevel = 0
     xpEarnedAtCurrentLevel = 0
     fogSettings = {}
+    nameplateRenderDistance = 64;
     typeId = 'minecraft:player'
 
     addExperience = vi.fn(() => 0)
@@ -648,6 +657,29 @@ export const world = {
     getEntity: vi.fn(),
     sendMessage: vi.fn(),
     gameRules: {},
+    primitiveShapesManager: {
+        maxShapes: 100,
+        addText: vi.fn((text, dimension) => {
+            if (!primitiveShapes.includes(text))
+                primitiveShapes.push(text)
+            if (dimension !== void 0)
+                text.dimension = dimension
+        }),
+        getShapes: vi.fn((options = {}) => primitiveShapes.filter(shape => {
+            if (options.attachedTo !== void 0 && shape.attachedTo !== options.attachedTo)
+                return false
+            if (options.location === void 0 || (options.maxDistance === void 0 && options.minDistance === void 0))
+                return true
+            const dx = shape.location.x - options.location.x
+            const dy = shape.location.y - options.location.y
+            const dz = shape.location.z - options.location.z
+            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
+            return (options.maxDistance === void 0 || distance < options.maxDistance) &&
+                (options.minDistance === void 0 || distance >= options.minDistance)
+        })),
+        removeAll: vi.fn(() => { primitiveShapes.length = 0 }),
+        removeText: vi.fn(removePrimitiveShape)
+    },
     structureManager: {
         get: vi.fn(id => structures.has(id) ? { id } : void 0),
         delete: vi.fn(id => structures.delete(id)),
@@ -691,4 +723,45 @@ export class BlockPermutation {
     getState = vi.fn((name) => this._states[name]);
 
     static resolve = vi.fn((id, states = {}) => new BlockPermutation(id, states));
+}
+
+export class TextPrimitive {
+    #text
+
+    attachedTo = void 0
+    color = { red: 1, green: 1, blue: 1, alpha: 1 }
+    dimension = void 0
+    maximumRenderDistance = void 0
+    rotation = { x: 0, y: 0, z: 0 }
+    scale = 1
+    timeLeft = void 0
+    visibleTo = []
+    backfaceVisible = true
+    backgroundColorOverride = void 0
+    depthTest = false
+    lineGapHeight = 0
+    textBackfaceVisible = true
+    useRotation = false
+
+    constructor(location, text) {
+        this.setLocation(location)
+        this.#text = text
+    }
+
+    get hasDuration() { return this.timeLeft !== void 0 }
+    get location() { return this._location }
+    get text() { return this.#text }
+    get totalTimeLeft() { return void 0 }
+
+    remove = vi.fn(() => removePrimitiveShape(this))
+    setLocation = vi.fn(location => {
+        if (location.dimension !== void 0) {
+            this.dimension = location.dimension
+            this._location = location.location
+        } else {
+            this.dimension = void 0
+            this._location = location
+        }
+    })
+    setText = vi.fn(text => { this.#text = text })
 }
