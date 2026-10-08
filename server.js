@@ -400,6 +400,81 @@ export const Block = class Block {
     })
 }
 
+export class InvalidContainerError extends Error {}
+export class InvalidContainerSlotError extends Error {}
+
+export const ContainerSlot = class ContainerSlot {
+    #read
+    #write
+    #isContainerValid
+
+    constructor(read, write, isContainerValid = () => true) {
+        this.#read = read
+        this.#write = write
+        this.#isContainerValid = isContainerValid
+    }
+
+    get isValid() { return this.#isContainerValid() }
+
+    #stored() {
+        if (!this.isValid) throw new InvalidContainerSlotError('The slot\'s container is invalid.')
+        return this.#read()
+    }
+
+    #item() {
+        const item = this.#stored()
+        if (!item) throw new Error('The slot is empty.')
+        return item
+    }
+
+    get amount() { return this.#item().amount }
+    set amount(value) {
+        const item = this.#item()
+        if (value < 1 || value > 255) throw new Error(`Amount ${value} is outside the range of 1-255.`)
+        item.amount = Math.min(value, item.maxAmount)
+    }
+    get isStackable() { return this.#item().isStackable }
+    get keepOnDeath() { return this.#item().keepOnDeath }
+    set keepOnDeath(value) { this.#item().keepOnDeath = value }
+    get lockMode() { return this.#item().lockMode }
+    set lockMode(value) { this.#item().lockMode = value }
+    get maxAmount() { return this.#item().maxAmount }
+    get nameTag() { return this.#item().nameTag }
+    set nameTag(value) {
+        const item = this.#item()
+        if (value?.length > 255) throw new Error('Name tag length exceeds 255 characters.')
+        item.nameTag = value === '' ? void 0 : value
+    }
+    get type() { return { id: this.#item().typeId } }
+    get typeId() { return this.#item().typeId }
+
+    clearDynamicProperties = vi.fn(() => this.#item().clearDynamicProperties())
+    getCanDestroy = vi.fn(() => this.#item().getCanDestroy())
+    getCanPlaceOn = vi.fn(() => this.#item().getCanPlaceOn())
+    getDynamicProperty = vi.fn(identifier => this.#item().getDynamicProperty(identifier))
+    getDynamicPropertyIds = vi.fn(() => this.#item().getDynamicPropertyIds())
+    getDynamicPropertyTotalByteCount = vi.fn(() => this.#item().getDynamicPropertyTotalByteCount())
+    getItem = vi.fn(() => this.#stored()?.clone())
+    getLore = vi.fn(() => this.#item().getLore())
+    getRawLore = vi.fn(() => this.#item().getLore().map(line => typeof line === 'string' ? { text: line } : line))
+    getTags = vi.fn(() => this.#stored()?.getTags() ?? [])
+    hasItem = vi.fn(() => this.#stored() !== void 0)
+    hasTag = vi.fn(tag => this.#stored()?.hasTag(tag) ?? false)
+    isStackableWith = vi.fn(itemStack => this.#item().isStackableWith(itemStack))
+    setCanDestroy = vi.fn(blockIdentifiers => this.#item().setCanDestroy(blockIdentifiers))
+    setCanPlaceOn = vi.fn(blockIdentifiers => this.#item().setCanPlaceOn(blockIdentifiers))
+    setDynamicProperties = vi.fn(values => {
+        const item = this.#item()
+        Object.entries(values ?? {}).forEach(([identifier, value]) => item.setDynamicProperty(identifier, value ?? void 0))
+    })
+    setDynamicProperty = vi.fn((identifier, value) => this.#item().setDynamicProperty(identifier, value ?? void 0))
+    setItem = vi.fn(itemStack => {
+        this.#stored()
+        this.#write(itemStack)
+    })
+    setLore = vi.fn(loreList => this.#item().setLore(loreList ?? []))
+}
+
 export const Container = class Container {
     #slots
 
@@ -415,10 +490,15 @@ export const Container = class Container {
 
     getItem = vi.fn(i => this.#slots[i] ?? void 0)
     setItem = vi.fn((i, item) => { this.#slots[i] = item ?? void 0 })
-    getSlot = vi.fn(i => ({
-        getItem: () => this.#slots[i] ?? void 0,
-        setItem: (item) => { this.#slots[i] = item ?? void 0 },
-    }))
+    getSlot = vi.fn(i => {
+        if (!this.isValid) throw new InvalidContainerError('The container is invalid.')
+        if (!Number.isInteger(i) || i < 0 || i >= this.size) throw new RangeError(`Slot ${i} is out of bounds.`)
+        return new ContainerSlot(
+            () => this.#slots[i] ?? void 0,
+            (item) => { this.#slots[i] = item ?? void 0 },
+            () => this.isValid
+        )
+    })
     addItem = vi.fn(itemStack => {
         for (let i = 0; i < this.size; i++) {
             if (!this.#slots[i]) {
