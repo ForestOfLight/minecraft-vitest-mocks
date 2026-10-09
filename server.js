@@ -521,7 +521,7 @@ export const Container = class Container {
         return void 0
     })
     firstEmptySlot = vi.fn(() => {
-        const i = this.#slots.indexOf(s => s === void 0)
+        const i = this.#slots.findIndex(s => s === void 0)
         return i === -1 ? void 0 : i
     })
     firstItem = vi.fn(() => {
